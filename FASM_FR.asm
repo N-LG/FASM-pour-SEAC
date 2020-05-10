@@ -1,9 +1,10 @@
+﻿fasmfr:
 ; flat assembler interface for SELG
 ; Copyright (c) 1999-2019, Tomasz Grysztar.
 ; All rights reserved.
 
 
-; adapt� par Nicolas Leprince-Granger
+; adapté par Nicolas Leprince-Granger
 
 
 
@@ -13,7 +14,7 @@ db "Compilateur FASM"
 scode:
 org 0
 
-;donn�es du segment CS
+;données du segment CS
 
 	mov ax,sel_dat1
 	mov ds,ax
@@ -30,7 +31,7 @@ org 0
 	mov	dword[stack_limit],pile
 
 	mov	dword[additional_memory],sdata2
-	mov	ecx,[memory_setting]         ;m�moir a uttiliser en Ko
+	mov	ecx,[memory_setting]         ;mémoir a uttiliser en Ko
 	shl	ecx,10
 	jnz	allocate_memory
 	mov	ecx,1000000h                   
@@ -389,10 +390,12 @@ include '..\x86_64.inc'
 include '..\avx.inc'
 
 
+
 include 'system.inc'
 
+include 'messages_fr.inc'    ;message d'erreur en français
+;include '..\messages.inc'    ;message d'erreur en anglais
 
-include '..\messages.inc' 
 include '..\tables.inc'
 include '..\variable.inc'
 include '..\version.inc'
@@ -401,17 +404,17 @@ _copyright db 'Copyright (c) 1999-2019, Tomasz Grysztar',13,0
 
 _logo db 'flat assembler  version ',VERSION_STRING,0
 _usage db 13
-       db 'usage: fasm <source> [output]',13
-       db 'optional settings:',13
-       db ' -m <limit>         set the limit in kilobytes for the available memory',13
-       db ' -p <limit>         set the maximum allowed number of passes',13
-       db ' -d <name>=<value>  define symbolic variable',13
-       db ' -s <file>          dump symbolic information for debugging',13,0
+       db 'syntaxe de commande: fasm <source> [output]',13
+       db 'options:',13
+       db ' -m <limite>        définis la limite en Kilo-octets de la mémoire uttilisable',13
+       db ' -p <limite>        définis le nombre maximum de passes',13
+       db " -d <name>=<value>  definis la valeur d'une variable",13
+       db ' -s <file>          créer un fichier de coresspondance de symbole pour le débuggage',13,0
 _memory_prefix db '  (',0
-_memory_suffix db ' kilobytes memory)',13,0
+_memory_suffix db ' kiloctets de mémoire)',13,0
 _passes_suffix db ' passes, ',0
-_seconds_suffix db ' seconds, ',0
-_bytes_suffix db ' bytes.',13,0
+_seconds_suffix db ' secondes, ',0
+_bytes_suffix db ' octets.',13,0
 
 
 
@@ -431,11 +434,11 @@ params rb 1000h
 
 sdata2:
 org 0
-;donn�es du segment ES
+;données du segment ES
 sdata3:
 org 0
-;donn�es du segment FS
+;données du segment FS
 sdata4:
 org 0
-;donn�es du segment GS
+;données du segment GS
 findata:

@@ -62,6 +62,7 @@ open:
 pushad
 	mov	eax,0
 open_create:
+	xor	ebx,ebx
 	int	64h 
 	cmp 	eax,0
 	jne file_error
@@ -342,6 +343,10 @@ assembler_error:
 	mov	dl,']'
 	call	display_character
       line_number_ok:
+
+pop eax                                ;modification pour avoir le bon numéros de ligne et
+jmp     display_error_message          ;le bon message d'erreur
+
 	mov	esi,line_data_start
 	call	display_string
 	mov	esi,ebx
@@ -448,7 +453,8 @@ assembler_error:
 	call	display_string
 	mov	esi,lf
 	call	display_string
-      display_error_message:
+  
+    display_error_message:
 	mov	esi,error_prefix
 	call	display_string
 	pop	esi

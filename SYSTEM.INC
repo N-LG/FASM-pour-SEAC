@@ -75,6 +75,10 @@ open_create:
 	cmp	edi,table_fichier+512
 	jne boucle_open_create
 
+    file_errorpp:
+	pop eax
+    file_errorp:
+	pop eax
     file_error:
 	popad
 	stc
@@ -105,7 +109,7 @@ close:
 	mov	esi,ebx
 	sub	esi,bidon
 	cmp	esi,512/8
-	jae file_error
+	jae file_errorp
 	shl	edi,3
 	add	edi,table_fichier
 	mov	ebx,[esi]
@@ -124,7 +128,7 @@ write:
 	mov	edi,ebx
 	sub	edi,bidon
 	cmp	edi,512/8
-	jae file_error
+	jae file_errorp
 	shl	edi,3
 	add	edi,table_fichier
 	mov	ebx,[edi]
@@ -145,7 +149,7 @@ read:
 	mov	esi,ebx
 	sub	esi,bidon
 	cmp	esi,512/8
-	jae file_error
+	jae file_errorp
 	shl	esi,3
 	add	esi,table_fichier
 	mov	ebx,[esi]
@@ -168,7 +172,7 @@ lseek:
 	mov	esi,ebx
 	sub	esi,bidon
 	cmp	esi,512/8
-	jae	file_error
+	jae	file_errorpp
 	shl	esi,3
 	add	esi,table_fichier
 	mov	ebx,[esi]
@@ -188,18 +192,25 @@ lseek:
 	cmp	dl,2
 	jne file_error
 
-	add	ecx,[buffer]
-	jmp lseek_debut
+	add ecx,[buffer]
+	mov [esi+4],ecx
+	jmp lseek_fin
 
     lseek_mil:
-	add	ecx,[esi+4]
+	add [esi+4],ecx
+	jmp lseek_fin
 
     lseek_debut:
-	cmp	[buffer],ecx
-	jae lseek_ok
+	mov [esi+4],ecx
+
+    lseek_fin:
+	cmp	ecx,[buffer]
+	jbe lseek_ok
 	mov	ecx,[buffer]
+	mov [esi+4],ecx
+
     lseek_ok:
-	mov	[esi+4],ecx
+	mov	ecx,[esi+4]
 	ss
 	mov	[esp+28],ecx   ;dans le eax de la pile
 	popad
@@ -208,23 +219,31 @@ lseek:
 
 
 display_string:         ;affiche le message pointé par esi
+	push    eax
+	push    edx
 	mov 	edx,esi
 	mov 	eax,6
 	int 	61h
+	pop 	edx
+	pop 	eax
 	ret
 
 display_character:       ;affiche le caractère dans dl
+	push    eax
+	push    edx
 	mov 	dh,0
 	mov	[character],dx
 	mov     edx,character
 	mov 	eax,6
 	int 	61h
+	pop 	edx
+	pop 	eax
 	ret
 
 
 
 display_number:
-	push	ebx
+	pushad
 	mov	ecx,1000000000
 	xor	edx,edx
 	xor	bl,bl
@@ -253,7 +272,7 @@ display_number:
 	pop	eax
 	or	ecx,ecx
 	jnz	display_loop
-	pop	ebx
+	popad	
 	ret
 
 display_user_messages:
@@ -273,12 +292,14 @@ display_block:
 	add	[displayed_count],ecx
 	mov	al,[esi+ecx-1]
 	mov	[last_displayed],al
-	push	ebx
-
+	push    eax
+	push    edx
 	mov 	edx,esi
 	mov 	eax,6
 	int 	61h
-	pop	ebx
+	pop 	edx
+	pop 	eax
+	
       block_displayed:
 	ret
 
@@ -291,8 +312,9 @@ fatal_error:
 	call	display_string
 	mov	al,0FFh
 	jmp	exit_program
-assembler_error:
-	;mov	[con_handle],2
+
+
+assembler_error:                          ;adresse du texte de l'erreur dans la pile
 	call	display_user_messages
 	mov	ebx,[current_line]
 	test	ebx,ebx
@@ -327,6 +349,7 @@ assembler_error:
 	pop	esi
 	cmp	ebx,esi
 	je	line_number_ok
+
 	mov	dl,20h
 	call	display_character
 	push	esi
@@ -344,31 +367,31 @@ assembler_error:
 	call	display_character
       line_number_ok:
 
-pop eax                                ;modification pour avoir le bon numéros de ligne et
-jmp     display_error_message          ;le bon message d'erreur
-
-	mov	esi,line_data_start
-	call	display_string
 	mov	esi,ebx
 	mov	edx,[esi]
 	call	open
+	jc line_data_displayed
 	mov	al,2
 	xor	edx,edx
 	call	lseek
+
 	mov	edx,[esi+8]
 	sub	eax,edx
 	jz	line_data_displayed
 	push	eax
 	xor	al,al
 	call	lseek
-	mov	ecx,[esp]
+
+	pop ecx
 	mov	edx,[additional_memory]
 	lea	eax,[edx+ecx]
 	cmp	eax,[additional_memory_end]
 	ja	out_of_memory
 	call	read
+
 	call	close
-	pop	ecx
+
+
 	mov	esi,[additional_memory]
       get_line_data:
 	mov	al,[esi]
@@ -383,11 +406,13 @@ jmp     display_error_message          ;le bon message d'erreur
 	inc	esi
 	loop	get_line_data
       display_line_data:
-	mov	ecx,esi
+	mov byte[esi],0
+	mov	esi,line_data_start
+	call	display_string
 	mov	esi,[additional_memory]
-	sub	ecx,esi
-	call	display_block
+	call	display_string
       line_data_displayed:
+
 	mov	esi,lf
 	call	display_string
 	pop	ebx
@@ -475,7 +500,7 @@ org 0
 
 
 
-error_prefix db 'error: ',0
+error_prefix db 'erreur: ',0
 error_suffix db '.'
 lf db 13,0
 line_number_start db ' [',0

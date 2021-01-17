@@ -61,12 +61,12 @@ bidon equ 60
 open:
 pushad
 	mov	eax,0
-open_create:
 	xor	ebx,ebx
 	int	64h 
 	cmp 	eax,0
 	jne file_error
 
+open_create:
 	mov	edi,table_fichier
     boucle_open_create:
 	cmp	dword[edi],0
@@ -100,6 +100,27 @@ open_create:
 create:
 	pushad
 	mov	eax,2
+	xor	ebx,ebx
+	int	64h 
+	cmp 	eax,0
+	je open_create
+	cmp 	eax,cer_nfr ;fichier déja existant
+	jne file_error
+
+	mov	eax,0   ;si le fichier existe déja on l'ouvre et on remet sa taille a zéro
+	xor	ebx,ebx
+	int	64h 
+	cmp 	eax,0
+	jne file_error
+
+	mov dword[buffer],0
+	mov dword[buffer+4],0
+	mov	al,7     ;change la taille du fichier
+	mov	ah,1
+	mov	edx,buffer
+	int	64h
+	cmp 	eax,0
+	jne file_error
 	jmp open_create
 
 
